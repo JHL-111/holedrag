@@ -1,4 +1,4 @@
-#include "cad_ui/QtOccView.h"
+﻿#include "cad_ui/QtOccView.h"
 #include "cad_ui/SketchMode.h"
 
 #include <OpenGl_GraphicDriver.hxx>
@@ -20,6 +20,7 @@
 #include <TopAbs.hxx>
 #include <Prs3d_LineAspect.hxx>
 #include <Quantity_Color.hxx>
+#pragma execution_character_set("utf-8")
 
 #ifdef _WIN32
 #include <WNT_Window.hxx>

@@ -1,4 +1,4 @@
-#include "cad_ui/MainWindow.h"
+﻿#include "cad_ui/MainWindow.h"
 #include "cad_ui/ExportDialog.h"
 #include "cad_ui/AboutDialog.h"
 #include "cad_ui/CreatePrimitiveDialog.h"
@@ -30,6 +30,7 @@
 #include <QFrame>
 #include <QLabel>
 #include <map>
+#pragma execution_character_set("utf-8")
 
 namespace cad_ui {
 
@@ -51,7 +52,7 @@ MainWindow::MainWindow(QWidget* parent)
     } else {
         qDebug() << "Failed to load stylesheet from QRC resources";
         // Fallback: try to load from file system for development
-        QFile fallbackFile("");
+        QFile fallbackFile("C:\\Users\\Administrator\\source\\repos\\AnderCAD\\cad_ui\\resources\\styles.qss");
         if (fallbackFile.open(QFile::ReadOnly | QFile::Text)) {
             QTextStream fallbackStream(&fallbackFile);
             QString fallbackStyle = fallbackStream.readAll();
