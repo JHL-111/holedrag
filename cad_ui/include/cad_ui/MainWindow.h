@@ -154,7 +154,8 @@ namespace cad_ui {
         void OnHoleOperationRequested(const cad_core::ShapePtr& targetShape, 
             const TopoDS_Face& selectedFace, 
             double diameter, 
-            double depth);
+            double depth,
+            double x, double y, double z);
         void OnTransformOperationRequested(std::shared_ptr<cad_core::TransformCommand> command);
         void OnTransformPreviewRequested(std::shared_ptr<cad_core::TransformCommand> command);
         void OnTransformResetRequested();
@@ -334,6 +335,11 @@ namespace cad_ui {
         void OnMinimizeWindow();
         void OnMaximizeWindow();
         void OnCloseWindow();
+
+
+
+    signals: 
+        void faceSelectionInfo(double x, double y, double z);
     };
 
 } // namespace cad_ui

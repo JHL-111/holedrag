@@ -47,6 +47,22 @@ void CreateHoleDialog::setupUI() {
     m_depthSpinBox->setSuffix(" mm");
     parametersLayout->addRow("深度:", m_depthSpinBox);
 
+    parametersLayout->addRow(new QLabel("--- 孔中心坐标 ---")); 
+    m_xCoordSpinBox = new QDoubleSpinBox(this);
+    m_xCoordSpinBox->setRange(-1000.0, 1000.0);
+    m_xCoordSpinBox->setValue(0.0);
+    parametersLayout->addRow("坐标 X:", m_xCoordSpinBox);
+
+    m_yCoordSpinBox = new QDoubleSpinBox(this);
+    m_yCoordSpinBox->setRange(-1000.0, 1000.0);
+    m_yCoordSpinBox->setValue(0.0);
+    parametersLayout->addRow("坐标 Y:", m_yCoordSpinBox);
+
+    m_zCoordSpinBox = new QDoubleSpinBox(this);
+    m_zCoordSpinBox->setRange(-1000.0, 1000.0);
+    m_zCoordSpinBox->setValue(0.0);
+    parametersLayout->addRow("坐标 Z:", m_zCoordSpinBox);
+
 	// botton layout
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     m_okButton = new QPushButton("确定", this);
@@ -130,8 +146,21 @@ void CreateHoleDialog::onAccept() {
     }
     double diameter = m_diameterSpinBox->value();
     double depth = m_depthSpinBox->value();
-    emit operationRequested(m_targetShape, m_selectedFace, diameter, depth);
+
+    // 读取坐标值
+    double x = m_xCoordSpinBox->value();
+    double y = m_yCoordSpinBox->value();
+    double z = m_zCoordSpinBox->value();
+
+    // 发射带有坐标信息的新信号
+    emit operationRequested(m_targetShape, m_selectedFace, diameter, depth, x, y, z);
     accept();
+}
+
+void CreateHoleDialog::updateCenterCoords(double x, double y, double z) {
+    m_xCoordSpinBox->setValue(x);
+    m_yCoordSpinBox->setValue(y);
+    m_zCoordSpinBox->setValue(z);
 }
 
 } // namespace cad_ui

@@ -29,9 +29,14 @@ public:
 
     void onObjectSelected(const cad_core::ShapePtr& shape);
     void onFaceSelected(const TopoDS_Face& face);
+    void updateCenterCoords(double x, double y, double z);
 
 signals:   
-    void operationRequested(const cad_core::ShapePtr& targetShape, const TopoDS_Face& selectedFace, double diameter, double depth);
+    void operationRequested(const cad_core::ShapePtr& targetShape, const TopoDS_Face& selectedFace, 
+                            double diameter, 
+                            double depth, 
+                            double x, double y, double z);
+
     void selectionModeChanged(bool enabled, const QString& prompt);
 
 private slots:
@@ -57,6 +62,9 @@ private:
     QGroupBox* m_parametersGroup;
     QDoubleSpinBox* m_diameterSpinBox;
     QDoubleSpinBox* m_depthSpinBox;
+    QDoubleSpinBox* m_xCoordSpinBox; //  添加 X 坐标输入框
+    QDoubleSpinBox* m_yCoordSpinBox; //  添加 Y 坐标输入框
+    QDoubleSpinBox* m_zCoordSpinBox; //  添加 Z 坐标输入框
 
     QPushButton* m_okButton;
     QPushButton* m_cancelButton;

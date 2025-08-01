@@ -13,7 +13,7 @@ public:
     
     static ShapePtr CreateCylinder(const Point& center, double radius, double height);
     static ShapePtr CreateCylinder(double radius, double height);
-    
+      
     static ShapePtr CreateSphere(const Point& center, double radius);
     static ShapePtr CreateSphere(double radius);
     

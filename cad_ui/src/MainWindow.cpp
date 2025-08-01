@@ -1551,6 +1551,9 @@ void MainWindow::OnCreateHole() {
         OnSelectionModeChanged(false, "");
         });
 
+    connect(this, &MainWindow::faceSelectionInfo, m_currentHoleDialog, &CreateHoleDialog::updateCenterCoords);
+    // ...
+
     m_currentHoleDialog->show();
     m_currentHoleDialog->raise();
     m_currentHoleDialog->activateWindow();
@@ -2301,6 +2304,13 @@ void MainWindow::OnSketchRectangleTool() {
 }
 
 void MainWindow::OnFaceSelected(const TopoDS_Face& face) {
+    if (m_currentHoleDialog && !face.IsNull()) {
+        GProp_GProps props;
+        BRepGProp::SurfaceProperties(face, props);
+        gp_Pnt faceCenter = props.CentreOfMass();
+        emit faceSelectionInfo(faceCenter.X(), faceCenter.Y(), faceCenter.Z());
+    }
+
     if (!m_waitingForFaceSelection) {
         return;
     }
@@ -2399,53 +2409,43 @@ void MainWindow::OnSketchModeExited() {
 }
 
 
-void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape, const TopoDS_Face& selectedFace, double diameter, double depth) {
+void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape, const TopoDS_Face& selectedFace,
+    double diameter, double depth,
+    double x, double y, double z) {
     if (!targetShape || selectedFace.IsNull()) {
         QMessageBox::warning(this, "挖孔失败", "未选择有效的形状或面。");
         return;
     }
 
-    // --- 第1步: 计算孔的位置和方向 ---
+    // --- 第1步: 获取孔的方向 ---
     Handle(Geom_Surface) surface = BRep_Tool::Surface(selectedFace);
     Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
     if (plane.IsNull()) {
         QMessageBox::warning(this, "挖孔失败", "挖孔操作目前只支持在平面上进行。");
         return;
     }
-
-    GProp_GProps props;
-    BRepGProp::SurfaceProperties(selectedFace, props);
-    gp_Pnt holeCenter = props.CentreOfMass();
     gp_Dir holeDirection = plane->Axis().Direction();
-
     if (selectedFace.Orientation() == TopAbs_REVERSED) {
         holeDirection.Reverse();
     }
 
-    // --- 第2步: 创建一个朝向实体内部的圆柱体 ---
-
-    // VVVV 核心修正 VVVV
-    // 挖孔的方向应该是面法线的反方向，这样圆柱体才会朝实体内部生成。
-    gp_Dir cylinderDirection = holeDirection.Reversed();
-    gp_Ax2 cylinderAxis(holeCenter, cylinderDirection);
-    // ^^^^ 核心修正 ^^^^
-
+    // --- 第2步: 在原点创建圆柱体，然后移动它 ---
+    // 2.1 我们调用已知能成功的函数，在(0,0,0)创建一个朝向Z轴的圆柱体
     auto cylinderTool = cad_core::ShapeFactory::CreateCylinder(diameter / 2.0, depth);
     if (!cylinderTool) {
-        QMessageBox::warning(this, "错误", "创建圆柱工具失败。");
+        QMessageBox::warning(this, "错误", "在原点创建圆柱工具失败。");
         return;
     }
 
-    gp_Trsf transform;
-    transform.SetTransformation(gp_Ax3(cylinderAxis));
-    BRepBuilderAPI_Transform transformer(cylinderTool->GetOCCTShape(), transform);
+    // 2.2 创建一个变换，用于移动和旋转圆柱体
+    gp_Trsf transformation;
+    // 定义目标坐标系：原点是用户输入的坐标，Z轴是面的法线反方向
+    gp_Ax3 targetCoordinateSystem(gp_Pnt(x, y, z), holeDirection.Reversed());
+    // 设置变换：从世界坐标系原点 gp::XOY() 移动到我们的目标坐标系
+    transformation.SetTransformation(targetCoordinateSystem, gp::XOY());
 
-    // 检查变换是否成功
-    if (!transformer.IsDone()) {
-        QMessageBox::warning(this, "错误", "定位圆柱工具失败。");
-        return;
-    }
-
+    // 应用变换
+    BRepBuilderAPI_Transform transformer(cylinderTool->GetOCCTShape(), transformation, Standard_True);
     auto transformedCylinder = std::make_shared<cad_core::Shape>(transformer.Shape());
 
     // --- 第3步: 执行布尔差集（挖孔） ---
@@ -2455,7 +2455,6 @@ void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape,
     if (resultShape && resultShape->IsValid()) {
         // --- 第4步: 更新文档和视图 ---
         m_ocafManager->ReplaceShape(targetShape, resultShape);
-
         RefreshUIFromOCAF();
         SetDocumentModified(true);
         m_ocafManager->CommitTransaction();
@@ -2463,7 +2462,7 @@ void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape,
     }
     else {
         m_ocafManager->AbortTransaction();
-        QMessageBox::warning(this, "挖孔操作失败", "挖孔操作失败。请检查孔的尺寸是否过大或位置不当。");
+        QMessageBox::warning(this, "挖孔操作失败", "挖孔操作失败。请检查尺寸或坐标是否在实体内部。");
     }
 }
 
