@@ -1541,15 +1541,7 @@ void MainWindow::OnCreateHole() {
     connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);   
     connect(m_currentHoleDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
 
-    // 当对话框关闭时，清理指针并断开连接
-    connect(m_currentHoleDialog, &QDialog::finished, this, [this](int result) {
-        disconnect(m_viewer, &QtOccView::ShapeSelected, m_currentHoleDialog, &CreateHoleDialog::onObjectSelected);
-        disconnect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);
-        m_currentHoleDialog->deleteLater();
-        m_currentHoleDialog = nullptr;
-        // 恢复默认选择模式
-        OnSelectionModeChanged(false, "");
-        });
+    
 
     connect(this, &MainWindow::faceSelectionInfo, m_currentHoleDialog, &CreateHoleDialog::updateCenterCoords);
     // ...
@@ -2417,7 +2409,7 @@ void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape,
         return;
     }
 
-    // --- 第1步: 获取孔的方向 ---
+    // 获取孔的方向 
     Handle(Geom_Surface) surface = BRep_Tool::Surface(selectedFace);
     Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
     if (plane.IsNull()) {
@@ -2429,31 +2421,30 @@ void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape,
         holeDirection.Reverse();
     }
 
-    // --- 第2步: 在原点创建圆柱体，然后移动它 ---
-    // 2.1 我们调用已知能成功的函数，在(0,0,0)创建一个朝向Z轴的圆柱体
+    // 在原点创建圆柱体，然后移动它
+    // 在(0,0,0)创建一个朝向Z轴的圆柱体
     auto cylinderTool = cad_core::ShapeFactory::CreateCylinder(diameter / 2.0, depth);
     if (!cylinderTool) {
         QMessageBox::warning(this, "错误", "在原点创建圆柱工具失败。");
         return;
     }
 
-    // 2.2 创建一个变换，用于移动和旋转圆柱体
     gp_Trsf transformation;
-    // 定义目标坐标系：原点是用户输入的坐标，Z轴是面的法线反方向
     gp_Ax3 targetCoordinateSystem(gp_Pnt(x, y, z), holeDirection.Reversed());
-    // 设置变换：从世界坐标系原点 gp::XOY() 移动到我们的目标坐标系
+    // 移动到目标坐标系
     transformation.SetTransformation(targetCoordinateSystem, gp::XOY());
 
     // 应用变换
     BRepBuilderAPI_Transform transformer(cylinderTool->GetOCCTShape(), transformation, Standard_True);
     auto transformedCylinder = std::make_shared<cad_core::Shape>(transformer.Shape());
 
-    // --- 第3步: 执行布尔差集（挖孔） ---
+    // 执行布尔差集
     m_ocafManager->StartTransaction("Create Hole");
     auto resultShape = cad_core::BooleanOperations::Difference(targetShape, transformedCylinder);
 
+
     if (resultShape && resultShape->IsValid()) {
-        // --- 第4步: 更新文档和视图 ---
+        // 更新文档和视图
         m_ocafManager->ReplaceShape(targetShape, resultShape);
         RefreshUIFromOCAF();
         SetDocumentModified(true);
