@@ -107,6 +107,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Initialize dialog pointers to null
     m_currentBooleanDialog = nullptr;
     m_currentFilletChamferDialog = nullptr;
+    m_currentHoleDialog = nullptr;
     
     // Connect signals
     ConnectSignals();
@@ -1518,30 +1519,36 @@ void MainWindow::OnChamfer() {
 }
 
 void MainWindow::OnCreateHole() {
-    // 创建对话框
-    auto* holeDialog = new CreateHoleDialog(this);
+    if (m_currentHoleDialog) {
+        m_currentHoleDialog->deleteLater();
+        m_currentHoleDialog = nullptr;
+    }
 
-    // 连接必要的信号
-    // 1. 当对话框请求改变选择模式时，通知MainWindow
-    connect(holeDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);
+    // Create and show dialog
+    m_currentHoleDialog = new CreateHoleDialog(this);
 
-    // 2. 当视图中选择了实体和面时，通知对话框
-    connect(m_viewer, &QtOccView::ShapeSelected, holeDialog, &CreateHoleDialog::onObjectSelected);
-    connect(m_viewer, &QtOccView::FaceSelected, holeDialog, &CreateHoleDialog::onFaceSelected);
+    // Connect signals
+    connect(m_currentHoleDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);
+    connect(m_viewer, &QtOccView::ShapeSelected, m_currentHoleDialog, &CreateHoleDialog::onObjectSelected);
+    connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);
 
-    // 3. 当对话框请求执行挖孔操作时，通知MainWindow
-    //    你需要提前在 MainWindow.h 中声明 OnHoleOperationRequested 槽
-    // connect(holeDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
+    // 连接挖孔操作请求的槽函数 (这是我们下一步要实现的)
+    // connect(m_currentHoleDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
 
-    // 当对话框关闭时，断开连接，避免内存泄漏
-    connect(holeDialog, &QDialog::finished, this, [this, holeDialog]() {
-        disconnect(m_viewer, &QtOccView::ShapeSelected, holeDialog, &CreateHoleDialog::onObjectSelected);
-        disconnect(m_viewer, &QtOccView::FaceSelected, holeDialog, &CreateHoleDialog::onFaceSelected);
+    // 当对话框关闭时，清理指针并断开连接
+    connect(m_currentHoleDialog, &QDialog::finished, this, [this](int result) {
+        disconnect(m_viewer, &QtOccView::ShapeSelected, m_currentHoleDialog, &CreateHoleDialog::onObjectSelected);
+        disconnect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);
+        m_currentHoleDialog->deleteLater();
+        m_currentHoleDialog = nullptr;
+        // 恢复默认选择模式
+        OnSelectionModeChanged(false, "");
         });
 
-    holeDialog->show();
-    holeDialog->raise();
-    holeDialog->activateWindow();
+    m_currentHoleDialog->show();
+    m_currentHoleDialog->raise();
+    m_currentHoleDialog->activateWindow();
+
 }
 
 
@@ -1820,7 +1827,12 @@ void MainWindow::OnSelectionModeChanged(bool enabled, const QString& prompt) {
             if (m_selectionModeCombo) {
                 m_selectionModeCombo->setCurrentIndex(0); // Shape mode
             }
-        } else {
+
+        }else if (m_currentHoleDialog) { 
+			// use face selection mode for hole creation
+            m_viewer->SetSelectionMode(4); 
+
+        }else {
             // Default to shape selection
             m_viewer->SetSelectionMode(cad_core::SelectionMode::Shape);
             
