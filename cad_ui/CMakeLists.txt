@@ -17,7 +17,7 @@ set(HEADERS
     include/cad_ui/TransformOperationDialog.h
     include/cad_ui/SketchMode.h
     include/cad_ui/FaceSelectionDialog.h
-    
+    include/cad_ui/CreateHoleDialog.h
     
 )
 
@@ -38,7 +38,7 @@ set(SOURCES
     src/TransformOperationDialog.cpp
     src/SketchMode.cpp
     src/FaceSelectionDialog.cpp
-
+    src/CreateHoleDialog.cpp
 )
 
 # 资源文件
@@ -47,7 +47,7 @@ set(RESOURCES
 )
 
 # 创建静态库
-add_library(${TARGET_NAME} STATIC ${HEADERS} ${SOURCES} ${RESOURCES} "include/cad_ui/CreateHoleDialog.h")
+add_library(${TARGET_NAME} STATIC ${HEADERS} ${SOURCES} ${RESOURCES} "include/cad_ui/CreateHoleDialog.h" "src/CreateHoleDialog.cpp")
 
 # 包含目录
 target_include_directories(${TARGET_NAME} PUBLIC 

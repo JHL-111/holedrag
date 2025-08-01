@@ -9,6 +9,7 @@
 #include "cad_core/ShapeFactory.h"
 #include "cad_core/BooleanOperations.h"
 #include "cad_core/FilletChamferOperations.h"
+#include "cad_ui/CreateHoleDialog.h" 
 #include "cad_core/SelectionManager.h"
 #include <TopoDS.hxx>
 
@@ -281,7 +282,12 @@ void MainWindow::CreateActions() {
     m_chamferAction->setIcon(chamferIcon);
     m_chamferAction->setStatusTip("Add chamfer to selected edges");
 
-	
+	// create hole action with 30x30 icon (icon-only display)
+    m_createHoleAction = new QAction("", this);
+    //QIcon holeIcon(":/icons/icons/Boolean-Cut.svg");
+    //holeIcon.addPixmap(QPixmap(":/icons/icons/Boolean-Cut.svg").scaled(30, 30, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    //m_createHoleAction->setIcon(holeIcon);
+    m_createHoleAction->setStatusTip("Create a hole on a face");
 
     
     // Transform actions
@@ -716,7 +722,22 @@ void MainWindow::CreateToolBars() {
     chamferLayout->setContentsMargins(0, 0, 0, 0);
     modificationsButtonsLayout->addLayout(chamferLayout);
 
-	
+    // Hole button with label below
+    QVBoxLayout* holeLayout = new QVBoxLayout();
+    QToolButton* holeBtn = new QToolButton();
+    holeBtn->setDefaultAction(m_createHoleAction);
+    holeBtn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    holeBtn->setIconSize(QSize(30, 30));
+    holeBtn->setFixedSize(30, 30);
+    holeBtn->setStyleSheet("QToolButton { border-radius: 8px; border: 1px solid #ccc; background-color: #f0f0f0; } QToolButton:hover { background-color: #e0e0e0; } QToolButton:pressed { background-color: #d0d0d0; }");
+    QLabel* holeLabel = new QLabel("挖孔");
+    holeLabel->setAlignment(Qt::AlignCenter);
+    holeLabel->setStyleSheet("font-size: 9px; color: #333; margin-top: 2px;");
+    holeLayout->addWidget(holeBtn);
+    holeLayout->addWidget(holeLabel);
+    holeLayout->setSpacing(1);
+    holeLayout->setContentsMargins(0, 0, 0, 0);
+    modificationsButtonsLayout->addLayout(holeLayout);
     
     // Transform button with label below
     QVBoxLayout* transformLayout = new QVBoxLayout();
@@ -932,7 +953,7 @@ void MainWindow::ConnectSignals() {
     // Modify actions
     connect(m_filletAction, &QAction::triggered, this, &MainWindow::OnFillet);
     connect(m_chamferAction, &QAction::triggered, this, &MainWindow::OnChamfer);
-
+	connect(m_createHoleAction, &QAction::triggered, this, &MainWindow::OnCreateHole);
     
     // Transform operations
     connect(m_transformAction, &QAction::triggered, this, &MainWindow::OnTransformObjects);
@@ -1496,7 +1517,32 @@ void MainWindow::OnChamfer() {
     m_currentFilletChamferDialog->activateWindow();
 }
 
+void MainWindow::OnCreateHole() {
+    // 创建对话框
+    auto* holeDialog = new CreateHoleDialog(this);
 
+    // 连接必要的信号
+    // 1. 当对话框请求改变选择模式时，通知MainWindow
+    connect(holeDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);
+
+    // 2. 当视图中选择了实体和面时，通知对话框
+    connect(m_viewer, &QtOccView::ShapeSelected, holeDialog, &CreateHoleDialog::onObjectSelected);
+    connect(m_viewer, &QtOccView::FaceSelected, holeDialog, &CreateHoleDialog::onFaceSelected);
+
+    // 3. 当对话框请求执行挖孔操作时，通知MainWindow
+    //    你需要提前在 MainWindow.h 中声明 OnHoleOperationRequested 槽
+    // connect(holeDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
+
+    // 当对话框关闭时，断开连接，避免内存泄漏
+    connect(holeDialog, &QDialog::finished, this, [this, holeDialog]() {
+        disconnect(m_viewer, &QtOccView::ShapeSelected, holeDialog, &CreateHoleDialog::onObjectSelected);
+        disconnect(m_viewer, &QtOccView::FaceSelected, holeDialog, &CreateHoleDialog::onFaceSelected);
+        });
+
+    holeDialog->show();
+    holeDialog->raise();
+    holeDialog->activateWindow();
+}
 
 
 // Selection mode combo box

@@ -131,7 +131,7 @@ private slots:
     // 修改操作
     void OnFillet();
     void OnChamfer();
-    
+    void OnCreateHole();
     
     // 变换操作
     void OnTransformObjects();
@@ -269,7 +269,7 @@ private:
     // Fillet and chamfer
     QAction* m_filletAction;
     QAction* m_chamferAction;
-    
+	QAction* m_createHoleAction;
     
     // Transform operations
     QAction* m_transformAction;
