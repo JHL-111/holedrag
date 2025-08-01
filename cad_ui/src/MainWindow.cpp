@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget* parent)
       m_isDragging(false), m_dragStartPosition(), m_titleBar(nullptr),
       m_titleLabel(nullptr), m_minimizeButton(nullptr), m_maximizeButton(nullptr),
       m_closeButton(nullptr), m_currentBooleanDialog(nullptr), m_currentFilletChamferDialog(nullptr),
-      m_currentTransformDialog(nullptr), m_previewActive(false), 
+      m_currentTransformDialog(nullptr), 
       m_waitingForFaceSelection(false) {
     
     // Load modern flat stylesheet
@@ -267,6 +267,7 @@ void MainWindow::CreateActions() {
     m_booleanDifferenceAction->setIcon(cutIcon);
     m_booleanDifferenceAction->setStatusTip("从一个形状中减去另一个形状");
     
+
     // Fillet and chamfer operations with 30x30 icons (icon-only display)
     m_filletAction = new QAction("", this);
     QIcon filletIcon(":/icons/icons/Mod-Fillet.svg");
@@ -279,6 +280,9 @@ void MainWindow::CreateActions() {
     chamferIcon.addPixmap(QPixmap(":/icons/icons/Mod-Chamfer.svg").scaled(30, 30, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     m_chamferAction->setIcon(chamferIcon);
     m_chamferAction->setStatusTip("Add chamfer to selected edges");
+
+	
+
     
     // Transform actions
     m_transformAction = new QAction("&Transform...", this);
@@ -711,6 +715,8 @@ void MainWindow::CreateToolBars() {
     chamferLayout->setSpacing(1);
     chamferLayout->setContentsMargins(0, 0, 0, 0);
     modificationsButtonsLayout->addLayout(chamferLayout);
+
+	
     
     // Transform button with label below
     QVBoxLayout* transformLayout = new QVBoxLayout();
@@ -926,6 +932,7 @@ void MainWindow::ConnectSignals() {
     // Modify actions
     connect(m_filletAction, &QAction::triggered, this, &MainWindow::OnFillet);
     connect(m_chamferAction, &QAction::triggered, this, &MainWindow::OnChamfer);
+
     
     // Transform operations
     connect(m_transformAction, &QAction::triggered, this, &MainWindow::OnTransformObjects);
@@ -1488,6 +1495,9 @@ void MainWindow::OnChamfer() {
     m_currentFilletChamferDialog->raise();
     m_currentFilletChamferDialog->activateWindow();
 }
+
+
+
 
 // Selection mode combo box
 void MainWindow::OnSelectionModeComboChanged(int index) {

@@ -17,7 +17,6 @@
 #include <QResizeEvent>
 #include <QComboBox>
 #include <QTextEdit>
-#include <QSplitter>
 
 #include "QtOccView.h"
 #include "DocumentTree.h"
@@ -133,6 +132,7 @@ private slots:
     void OnFillet();
     void OnChamfer();
     
+    
     // 变换操作
     void OnTransformObjects();
     
@@ -201,6 +201,7 @@ private:
     FilletChamferDialog* m_currentFilletChamferDialog;
     TransformOperationDialog* m_currentTransformDialog;
     
+    
     // Current document info
     QString m_currentFileName;
     bool m_documentModified;
@@ -268,6 +269,7 @@ private:
     // Fillet and chamfer
     QAction* m_filletAction;
     QAction* m_chamferAction;
+    
     
     // Transform operations
     QAction* m_transformAction;
