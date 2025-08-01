@@ -11,6 +11,7 @@
 #include <QDoubleSpinBox>
 #include "cad_core/Shape.h"
 #include <TopoDS_Face.hxx>
+#include <QListWidget>
 
 // 前向声明
 namespace cad_ui {
@@ -51,7 +52,7 @@ private:
     // UI 控件
     QGroupBox* m_selectionGroup;
     QPushButton* m_selectFaceButton;
-    QLabel* m_faceStatusLabel;
+    QListWidget* m_selectionList;
 
     QGroupBox* m_parametersGroup;
     QDoubleSpinBox* m_diameterSpinBox;

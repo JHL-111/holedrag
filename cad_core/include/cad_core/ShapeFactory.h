@@ -3,6 +3,7 @@
 #include "Shape.h"
 #include "Point.h"
 
+
 namespace cad_core {
 
 class ShapeFactory {

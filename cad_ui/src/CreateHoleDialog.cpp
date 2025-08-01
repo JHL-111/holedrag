@@ -20,16 +20,16 @@ void CreateHoleDialog::setupUI() {
 
 	// face selection group
     m_selectionGroup = new QGroupBox("选择", this);
-    QGridLayout* selectionLayout = new QGridLayout(m_selectionGroup);
+    auto* selectionLayout = new QVBoxLayout(m_selectionGroup); 
 
-    QLabel* faceLabel = new QLabel("定位面:", this);
-    m_faceStatusLabel = new QLabel("未选择", this);
-    m_faceStatusLabel->setStyleSheet("color: #888;");
-    m_selectFaceButton = new QPushButton("选择", this);
+    m_selectFaceButton = new QPushButton("选择要挖孔的面", this);
+    m_selectionList = new QListWidget(this);
+    m_selectionList->setMaximumHeight(60); // 限制列表高度
+    m_selectionList->addItem("尚未选择面...");
+    m_selectionList->setStyleSheet("QListWidget::item { color: #888; }");
 
-    selectionLayout->addWidget(faceLabel, 0, 0);
-    selectionLayout->addWidget(m_faceStatusLabel, 0, 1);
-    selectionLayout->addWidget(m_selectFaceButton, 0, 2);
+    selectionLayout->addWidget(m_selectFaceButton);
+    selectionLayout->addWidget(m_selectionList);
 
 	// parameters group
     m_parametersGroup = new QGroupBox("参数", this);
@@ -107,13 +107,14 @@ void CreateHoleDialog::onSelectionFinished() {
 }
 
 void CreateHoleDialog::updateSelectionDisplay() {
+    m_selectionList->clear();
     if (!m_selectedFace.IsNull()) {
-        m_faceStatusLabel->setText("已选择 1 个面");
-        m_faceStatusLabel->setStyleSheet("color: green;");
+        m_selectionList->addItem("已选择 1 个面");
+        m_selectionList->setStyleSheet("QListWidget::item { color: green; }");
     }
     else {
-        m_faceStatusLabel->setText("未选择");
-        m_faceStatusLabel->setStyleSheet("color: #888;");
+        m_selectionList->addItem("尚未选择面...");
+        m_selectionList->setStyleSheet("QListWidget::item { color: #888; }");
     }
 }
 

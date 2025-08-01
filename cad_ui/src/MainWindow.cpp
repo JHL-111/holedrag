@@ -12,6 +12,14 @@
 #include "cad_ui/CreateHoleDialog.h" 
 #include "cad_core/SelectionManager.h"
 #include <TopoDS.hxx>
+#include <BRep_Tool.hxx>
+#include <GProp_GProps.hxx>
+#include <BRepGProp.hxx>
+#include <gp_Pln.hxx>
+#include <Geom_Surface.hxx>
+#include <Geom_Plane.hxx>
+#include <gp_Ax2.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 
 #include <iostream>
 #include <QApplication>
@@ -1530,10 +1538,8 @@ void MainWindow::OnCreateHole() {
     // Connect signals
     connect(m_currentHoleDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);
     connect(m_viewer, &QtOccView::ShapeSelected, m_currentHoleDialog, &CreateHoleDialog::onObjectSelected);
-    connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);
-
-    // 连接挖孔操作请求的槽函数 (这是我们下一步要实现的)
-    // connect(m_currentHoleDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
+    connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);   
+    connect(m_currentHoleDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
 
     // 当对话框关闭时，清理指针并断开连接
     connect(m_currentHoleDialog, &QDialog::finished, this, [this](int result) {
@@ -2390,6 +2396,75 @@ void MainWindow::OnSketchModeExited() {
     statusBar()->showMessage("已退出草图模式");
     
     qDebug() << "Sketch mode exited, UI updated";
+}
+
+
+void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape, const TopoDS_Face& selectedFace, double diameter, double depth) {
+    if (!targetShape || selectedFace.IsNull()) {
+        QMessageBox::warning(this, "挖孔失败", "未选择有效的形状或面。");
+        return;
+    }
+
+    // --- 第1步: 计算孔的位置和方向 ---
+    Handle(Geom_Surface) surface = BRep_Tool::Surface(selectedFace);
+    Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
+    if (plane.IsNull()) {
+        QMessageBox::warning(this, "挖孔失败", "挖孔操作目前只支持在平面上进行。");
+        return;
+    }
+
+    GProp_GProps props;
+    BRepGProp::SurfaceProperties(selectedFace, props);
+    gp_Pnt holeCenter = props.CentreOfMass();
+    gp_Dir holeDirection = plane->Axis().Direction();
+
+    if (selectedFace.Orientation() == TopAbs_REVERSED) {
+        holeDirection.Reverse();
+    }
+
+    // --- 第2步: 创建一个朝向实体内部的圆柱体 ---
+
+    // VVVV 核心修正 VVVV
+    // 挖孔的方向应该是面法线的反方向，这样圆柱体才会朝实体内部生成。
+    gp_Dir cylinderDirection = holeDirection.Reversed();
+    gp_Ax2 cylinderAxis(holeCenter, cylinderDirection);
+    // ^^^^ 核心修正 ^^^^
+
+    auto cylinderTool = cad_core::ShapeFactory::CreateCylinder(diameter / 2.0, depth);
+    if (!cylinderTool) {
+        QMessageBox::warning(this, "错误", "创建圆柱工具失败。");
+        return;
+    }
+
+    gp_Trsf transform;
+    transform.SetTransformation(gp_Ax3(cylinderAxis));
+    BRepBuilderAPI_Transform transformer(cylinderTool->GetOCCTShape(), transform);
+
+    // 检查变换是否成功
+    if (!transformer.IsDone()) {
+        QMessageBox::warning(this, "错误", "定位圆柱工具失败。");
+        return;
+    }
+
+    auto transformedCylinder = std::make_shared<cad_core::Shape>(transformer.Shape());
+
+    // --- 第3步: 执行布尔差集（挖孔） ---
+    m_ocafManager->StartTransaction("Create Hole");
+    auto resultShape = cad_core::BooleanOperations::Difference(targetShape, transformedCylinder);
+
+    if (resultShape && resultShape->IsValid()) {
+        // --- 第4步: 更新文档和视图 ---
+        m_ocafManager->ReplaceShape(targetShape, resultShape);
+
+        RefreshUIFromOCAF();
+        SetDocumentModified(true);
+        m_ocafManager->CommitTransaction();
+        statusBar()->showMessage("挖孔成功！", 3000);
+    }
+    else {
+        m_ocafManager->AbortTransaction();
+        QMessageBox::warning(this, "挖孔操作失败", "挖孔操作失败。请检查孔的尺寸是否过大或位置不当。");
+    }
 }
 
 } // namespace cad_ui

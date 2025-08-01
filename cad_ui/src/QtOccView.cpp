@@ -673,33 +673,38 @@ void QtOccView::HandleSelection(const QPoint& point) {
                     }
                 }
             }
-        } else if (m_currentSelectionMode == 4) { // Face mode
-            // Handle face selection for sketch mode
+        }
+        else if (m_currentSelectionMode == 4) { // Face mode
             qDebug() << "Face selection mode detected, attempting to select face...";
-            
             m_context->Select(Standard_True);
-            
-            // Get selected face from OpenCASCADE context
+
             for (m_context->InitSelected(); m_context->MoreSelected(); m_context->NextSelected()) {
                 Handle(AIS_InteractiveObject) anIO = m_context->SelectedInteractive();
                 Handle(AIS_Shape) aisShape = Handle(AIS_Shape)::DownCast(anIO);
-                
+
                 if (!aisShape.IsNull()) {
-                    // Get the selected entity (face)
+                    // send signal for the parent shape
+                    cad_core::ShapePtr parentShape = nullptr;
+                    for (const auto& pair : m_shapeToAIS) {
+                        if (pair.second == aisShape) {
+                            parentShape = pair.first;
+                            break;
+                        }
+                    }
+                    if (parentShape) {
+                        emit ShapeSelected(parentShape);
+                    }
+
+					// send signal for the selected face
                     Handle(StdSelect_BRepOwner) anOwner = Handle(StdSelect_BRepOwner)::DownCast(m_context->SelectedOwner());
                     if (!anOwner.IsNull()) {
                         TopoDS_Shape selectedShape = anOwner->Shape();
-                        qDebug() << "Selected shape type:" << selectedShape.ShapeType() << "TopAbs_FACE=" << TopAbs_FACE;
-                        
                         if (selectedShape.ShapeType() == TopAbs_FACE) {
                             TopoDS_Face face = TopoDS::Face(selectedShape);
-                            
-                            // 高亮选中的面
                             HighlightFace(face);
-                            
                             qDebug() << "Face selected, emitting FaceSelected signal";
                             emit FaceSelected(face);
-                            break;
+                            break; // 只处理第一个选中的面
                         }
                     }
                 }

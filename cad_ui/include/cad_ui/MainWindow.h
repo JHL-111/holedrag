@@ -151,6 +151,10 @@ namespace cad_ui {
         void OnFilletChamferOperationRequested(FilletChamferType type,
             const std::vector<cad_core::ShapePtr>& edges,
             double radius, double distance1, double distance2);
+        void OnHoleOperationRequested(const cad_core::ShapePtr& targetShape, 
+            const TopoDS_Face& selectedFace, 
+            double diameter, 
+            double depth);
         void OnTransformOperationRequested(std::shared_ptr<cad_core::TransformCommand> command);
         void OnTransformPreviewRequested(std::shared_ptr<cad_core::TransformCommand> command);
         void OnTransformResetRequested();
