@@ -37,13 +37,13 @@ void CreateHoleDialog::setupUI() {
 
     m_diameterSpinBox = new QDoubleSpinBox(this);
     m_diameterSpinBox->setRange(0.1, 1000.0);
-    m_diameterSpinBox->setValue(10.0);
+    m_diameterSpinBox->setValue(5.0);
     m_diameterSpinBox->setSuffix(" mm");
     parametersLayout->addRow("÷±æ∂:", m_diameterSpinBox);
 
     m_depthSpinBox = new QDoubleSpinBox(this);
     m_depthSpinBox->setRange(0.1, 1000.0);
-    m_depthSpinBox->setValue(20.0);
+    m_depthSpinBox->setValue(5.0);
     m_depthSpinBox->setSuffix(" mm");
     parametersLayout->addRow("…Ó∂»:", m_depthSpinBox);
 

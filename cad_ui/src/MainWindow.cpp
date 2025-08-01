@@ -1536,20 +1536,15 @@ void MainWindow::OnCreateHole() {
     m_currentHoleDialog = new CreateHoleDialog(this);
 
     // Connect signals
-    connect(m_currentHoleDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);
     connect(m_viewer, &QtOccView::ShapeSelected, m_currentHoleDialog, &CreateHoleDialog::onObjectSelected);
-    connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);   
+    connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);
+    connect(m_currentHoleDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);  
     connect(m_currentHoleDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
-
-    
-
     connect(this, &MainWindow::faceSelectionInfo, m_currentHoleDialog, &CreateHoleDialog::updateCenterCoords);
-    // ...
 
     m_currentHoleDialog->show();
     m_currentHoleDialog->raise();
     m_currentHoleDialog->activateWindow();
-
 }
 
 
