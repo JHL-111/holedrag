@@ -1053,6 +1053,38 @@ void QtOccView::UnhighlightAllFaces() {
     m_view->Redraw();
 }
 
+void QtOccView::SetShapeTransparency(const cad_core::ShapePtr& shape, double transparency) {
+    if (!shape || m_context.IsNull()) {
+        return;
+    }
+
+    auto it = m_shapeToAIS.find(shape);
+    if (it != m_shapeToAIS.end()) {
+        Handle(AIS_Shape) aisShape = it->second;
+        if (!aisShape.IsNull()) {
+            // 设置透明度
+            m_context->SetTransparency(aisShape, transparency, Standard_False);
+            // 更新对象的显示状态
+            m_context->Update(aisShape, Standard_True);
+        }
+    }
+}
+
+void QtOccView::ResetShapeDisplay(const cad_core::ShapePtr& shape) {
+    if (!shape || m_context.IsNull()) {
+        return;
+    }
+    auto it = m_shapeToAIS.find(shape);
+    if (it != m_shapeToAIS.end()) {
+        Handle(AIS_Shape) aisShape = it->second;
+        if (!aisShape.IsNull()) {
+            // 移除透明度设置
+            m_context->UnsetTransparency(aisShape, Standard_False);
+            m_context->Update(aisShape, Standard_True);
+        }
+    }
+}
+
 // =============================================================================
 // Sketch Mode Implementation
 // =============================================================================

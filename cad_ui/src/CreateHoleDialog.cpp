@@ -1,17 +1,26 @@
 #include "cad_ui/CreateHoleDialog.h"
+#include "cad_ui/QtOccView.h"
 #include <QMessageBox>
 #include <QFormLayout>
 #pragma execution_character_set("utf-8")
 
 namespace cad_ui {
 
-CreateHoleDialog::CreateHoleDialog(QWidget* parent)
-    : QDialog(parent), m_isSelectingFace(false) {
-    setupUI();
-    setModal(false); 
-    setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
-    resize(380, 500);
-}
+    CreateHoleDialog::CreateHoleDialog(QtOccView* viewer, QWidget* parent)
+        : QDialog(parent), m_isSelectingFace(false), m_viewer(viewer) {
+        setupUI();
+        setModal(false);
+        setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
+        resize(380, 500);
+        
+    }
+
+    // 实现析构函数，确保对话框关闭时恢复实体外观
+    CreateHoleDialog::~CreateHoleDialog() {
+        if (m_viewer && m_transparentShape) {
+            m_viewer->ResetShapeDisplay(m_transparentShape);
+        }
+    }
 
 void CreateHoleDialog::setupUI() {
     setWindowTitle("挖孔操作");
@@ -95,6 +104,13 @@ void CreateHoleDialog::onSelectFaceClicked() {
     connect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectionFinished);
 }
 
+void CreateHoleDialog::cleanupAndRestoreView() {
+    if (m_viewer && m_transparentShape) {
+        m_viewer->ResetShapeDisplay(m_transparentShape);
+    }
+    // 关键：清空指针，切断与旧实体的任何联系
+    m_transparentShape = nullptr;
+}
 
 void CreateHoleDialog::onObjectSelected(const cad_core::ShapePtr& shape) {
     if (m_isSelectingFace) {
@@ -106,6 +122,23 @@ void CreateHoleDialog::onObjectSelected(const cad_core::ShapePtr& shape) {
 void CreateHoleDialog::onFaceSelected(const TopoDS_Face& face) {
     if (m_isSelectingFace) {
         m_selectedFace = face;
+
+        // 关键逻辑：
+        // 此时 m_targetShape 应该已经被 onObjectSelected 设置为当前面的父实体。
+        if (m_viewer && m_targetShape) {
+
+            // 1. 如果之前有别的实体是半透明的，先把它恢复原状
+            if (m_transparentShape && m_transparentShape != m_targetShape) {
+                m_viewer->ResetShapeDisplay(m_transparentShape);
+            }
+
+            // 2. 将当前面所属的实体设置为半透明
+            m_viewer->SetShapeTransparency(m_targetShape, 0.5); // 设置为50%透明度
+
+            // 3. 记录下哪个实体被我们变透明了，以便之后恢复
+            m_transparentShape = m_targetShape;
+        }
+
         updateSelectionDisplay();
         checkCanAccept();
     }

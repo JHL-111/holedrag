@@ -24,11 +24,13 @@ class CreateHoleDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit CreateHoleDialog(QWidget* parent = nullptr);
-    ~CreateHoleDialog() = default;
+    explicit CreateHoleDialog(QtOccView* viewer, QWidget* parent = nullptr);
+    // 添加析构函数，用于恢复透明度
+    ~CreateHoleDialog();
 
     void onObjectSelected(const cad_core::ShapePtr& shape);
     void onFaceSelected(const TopoDS_Face& face);
+    void cleanupAndRestoreView();
     void updateCenterCoords(double x, double y, double z);
 
 signals:   
@@ -53,6 +55,8 @@ private:
     cad_core::ShapePtr m_targetShape;   // 存储被选中的实体
     TopoDS_Face m_selectedFace;         // 存储被选中的面
     bool m_isSelectingFace;             // 标记是否正处于“选择面”的状态
+    QtOccView* m_viewer; // 指向3D视图
+    cad_core::ShapePtr m_transparentShape; // 记录被设为透明的实体
 
     // UI 控件
     QGroupBox* m_selectionGroup;

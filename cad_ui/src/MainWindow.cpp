@@ -1528,19 +1528,30 @@ void MainWindow::OnChamfer() {
 
 void MainWindow::OnCreateHole() {
     if (m_currentHoleDialog) {
-        m_currentHoleDialog->deleteLater();
-        m_currentHoleDialog = nullptr;
+        m_currentHoleDialog->close();
+        return;
     }
 
-    // Create and show dialog
-    m_currentHoleDialog = new CreateHoleDialog(this);
-
-    // Connect signals
+    // 创建对话框时传入 viewer 指针
+    m_currentHoleDialog = new CreateHoleDialog(m_viewer, this);
     connect(m_viewer, &QtOccView::ShapeSelected, m_currentHoleDialog, &CreateHoleDialog::onObjectSelected);
+
     connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);
-    connect(m_currentHoleDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);  
+    connect(m_currentHoleDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);
     connect(m_currentHoleDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
     connect(this, &MainWindow::faceSelectionInfo, m_currentHoleDialog, &CreateHoleDialog::updateCenterCoords);
+
+    connect(m_currentHoleDialog, &QDialog::finished, this, [this](int result) {
+        if (m_currentHoleDialog) {
+            // 调用清理函数恢复视图
+            m_currentHoleDialog->cleanupAndRestoreView();
+            m_currentHoleDialog->deleteLater();
+            m_currentHoleDialog = nullptr;
+        }
+        // 恢复主窗口的默认选择模式
+        OnSelectionModeChanged(false, "");
+        statusBar()->showMessage("Ready");
+        });
 
     m_currentHoleDialog->show();
     m_currentHoleDialog->raise();
@@ -2399,11 +2410,7 @@ void MainWindow::OnSketchModeExited() {
 void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape, const TopoDS_Face& selectedFace,
     double diameter, double depth,
     double x, double y, double z) {
-    if (!targetShape || selectedFace.IsNull()) {
-        QMessageBox::warning(this, "挖孔失败", "未选择有效的形状或面。");
-        return;
-    }
-
+  
     // 获取孔的方向 
     Handle(Geom_Surface) surface = BRep_Tool::Surface(selectedFace);
     Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
@@ -2439,17 +2446,34 @@ void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape,
 
 
     if (resultShape && resultShape->IsValid()) {
-        // 更新文档和视图
-        m_ocafManager->ReplaceShape(targetShape, resultShape);
-        RefreshUIFromOCAF();
-        SetDocumentModified(true);
-        m_ocafManager->CommitTransaction();
-        statusBar()->showMessage("挖孔成功！", 3000);
+        // 调用清理函数
+        if (m_currentHoleDialog) {
+            m_currentHoleDialog->cleanupAndRestoreView();
+        }
+
+        if (m_ocafManager->ReplaceShape(targetShape, resultShape)) {
+            // 更新模型
+            m_viewer->RemoveShape(targetShape);
+            m_documentTree->RemoveShape(targetShape);
+
+            m_viewer->DisplayShape(resultShape);
+            m_documentTree->AddShape(resultShape);
+
+            SetDocumentModified(true);
+            m_ocafManager->CommitTransaction();
+            statusBar()->showMessage("挖孔成功！", 3000);
+        }
+        else {
+            m_ocafManager->AbortTransaction();
+            QMessageBox::warning(this, "挖孔失败", "无法在文档中替换实体。");
+        }
     }
     else {
         m_ocafManager->AbortTransaction();
-        QMessageBox::warning(this, "挖孔操作失败", "挖孔操作失败。请检查尺寸或坐标是否在实体内部。");
+        QMessageBox::warning(this, "挖孔操作失败", "挖孔操作失败。请检查坐标是否在实体内部。");
     }
+
+
 }
 
 } // namespace cad_ui

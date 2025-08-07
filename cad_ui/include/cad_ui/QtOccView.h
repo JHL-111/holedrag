@@ -59,13 +59,15 @@ public:
     void ClearSelection();
     void SelectShape(const cad_core::ShapePtr& shape);
     
-    // 用于操作的边选择
+    // 用于操作的边和面选择
     void ClearEdgeSelection();
     std::vector<TopoDS_Edge> GetSelectedTopoEdges() const { return m_selectedEdges; }
     std::map<cad_core::ShapePtr, std::vector<TopoDS_Edge>> GetSelectedEdgesByShape() const;
     void HighlightEdge(const TopoDS_Edge& edge);
     void HighlightVertex(const TopoDS_Vertex& vertex);
     void HighlightFace(const TopoDS_Face& face);
+    void SetShapeTransparency(const cad_core::ShapePtr& shape, double transparency);
+    void ResetShapeDisplay(const cad_core::ShapePtr& shape);
     void UnhighlightAllEdges();
     void UnhighlightAllVertices();
     void UnhighlightAllFaces();
