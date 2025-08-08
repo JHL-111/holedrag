@@ -2410,7 +2410,7 @@ void MainWindow::OnSketchModeExited() {
 void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape, const TopoDS_Face& selectedFace,
     double diameter, double depth,
     double x, double y, double z) {
-  
+
     // 获取孔的方向 
     Handle(Geom_Surface) surface = BRep_Tool::Surface(selectedFace);
     Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
@@ -2472,7 +2472,7 @@ void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape,
         m_ocafManager->AbortTransaction();
         QMessageBox::warning(this, "挖孔操作失败", "挖孔操作失败。请检查坐标是否在实体内部。");
     }
-
+}
 
 void MainWindow::OnHolePreviewRequested(const cad_core::ShapePtr & holePreviewShape)
 {
@@ -2490,8 +2490,6 @@ void MainWindow::OnHoleResetPreviewRequested()
 
     m_viewer->ClearPreviewShapes();
 }
-
-
 
 } // namespace cad_ui
 

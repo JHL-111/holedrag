@@ -1094,10 +1094,10 @@ void QtOccView::DisplayPreviewShape(const cad_core::ShapePtr& shape)
     ClearPreviewShapes();
     Handle(AIS_Shape) aisShape = new AIS_Shape(shape->GetOCCTShape());
 
-    // 设置预览样式：半透明红色线框 
-    aisShape->SetDisplayMode(AIS_WireFrame);
-    aisShape->SetColor(Quantity_NOC_RED1);
-    aisShape->SetTransparency(0.5);
+    // 设置预览样式：半透明红色
+    aisShape->SetDisplayMode(AIS_Shaded);
+    aisShape->SetColor(Quantity_NOC_BLUE);
+    aisShape->SetTransparency(0.2);
 
     m_context->Display(aisShape, Standard_False);
     m_previewAISShapes.push_back(aisShape);

@@ -49,14 +49,14 @@ void CreateHoleDialog::setupUI() {
     QFormLayout* parametersLayout = new QFormLayout(m_parametersGroup);
 
     m_diameterSpinBox = new QDoubleSpinBox(this);
-    m_diameterSpinBox->setRange(0.1, 1000.0);
-    m_diameterSpinBox->setValue(5.0);
+    m_diameterSpinBox->setRange(0.0, 1000.0);
+    m_diameterSpinBox->setValue(0.0);
     m_diameterSpinBox->setSuffix(" mm");
     parametersLayout->addRow("直径:", m_diameterSpinBox);
 
     m_depthSpinBox = new QDoubleSpinBox(this);
-    m_depthSpinBox->setRange(0.1, 1000.0);
-    m_depthSpinBox->setValue(5.0);
+    m_depthSpinBox->setRange(0.0, 1000.0);
+    m_depthSpinBox->setValue(0.0);
     m_depthSpinBox->setSuffix(" mm");
     parametersLayout->addRow("深度:", m_depthSpinBox);
 
@@ -142,7 +142,7 @@ void CreateHoleDialog::onFaceSelected(const TopoDS_Face& face) {
             if (m_transparentShape && m_transparentShape != m_targetShape) {
                 m_viewer->ResetShapeDisplay(m_transparentShape);
             }
-            m_viewer->SetShapeTransparency(m_targetShape, 0.5);
+            m_viewer->SetShapeTransparency(m_targetShape, 0.8);
             m_transparentShape = m_targetShape;
         }
 
