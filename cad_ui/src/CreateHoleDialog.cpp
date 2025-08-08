@@ -1,82 +1,86 @@
-#include "cad_ui/CreateHoleDialog.h"
+Ôªø#include "cad_ui/CreateHoleDialog.h"
 #include "cad_ui/QtOccView.h"
+#include "cad_core/ShapeFactory.h"
+#include <BRep_Tool.hxx>
+#include <Geom_Surface.hxx>
+#include <Geom_Plane.hxx>
+#include <gp_Dir.hxx>
+#include <gp_Ax3.hxx>
+#include <gp_Pnt.hxx>
+#include <gp_Trsf.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 #include <QMessageBox>
 #include <QFormLayout>
 #pragma execution_character_set("utf-8")
 
 namespace cad_ui {
 
-    CreateHoleDialog::CreateHoleDialog(QtOccView* viewer, QWidget* parent)
-        : QDialog(parent), m_isSelectingFace(false), m_viewer(viewer) {
-        setupUI();
-        setModal(false);
-        setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
-        resize(380, 500);
-        
-    }
+CreateHoleDialog::CreateHoleDialog(QtOccView* viewer, QWidget* parent)
+    : QDialog(parent), m_isSelectingFace(false), m_viewer(viewer), m_previewActive(false) {
+    setupUI();
+    setModal(false);
+    setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
+    resize(380, 500);
+}
 
-    //  µœ÷Œˆππ∫Ø ˝£¨»∑±£∂‘ª∞øÚπÿ±’ ±ª÷∏¥ µÃÂÕ‚π€
-    CreateHoleDialog::~CreateHoleDialog() {
-        if (m_viewer && m_transparentShape) {
-            m_viewer->ResetShapeDisplay(m_transparentShape);
-        }
-    }
+// ÂÆûÁé∞ÊûêÊûÑÂáΩÊï∞
+CreateHoleDialog::~CreateHoleDialog() {
+}
 
 void CreateHoleDialog::setupUI() {
-    setWindowTitle("Õ⁄ø◊≤Ÿ◊˜");
-    //  π”√√˜»∑µƒ¿‡–ÕÃÊªª auto*
+    setWindowTitle("ÊåñÂ≠îÊìç‰Ωú");
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-	// face selection group
-    m_selectionGroup = new QGroupBox("—°‘Ò", this);
-    auto* selectionLayout = new QVBoxLayout(m_selectionGroup); 
+    // --- ÈÄâÊã©ÁªÑ ---
+    m_selectionGroup = new QGroupBox("ÈÄâÊã©", this);
+    auto* selectionLayout = new QVBoxLayout(m_selectionGroup);
 
-    m_selectFaceButton = new QPushButton("—°‘Ò“™Õ⁄ø◊µƒ√Ê", this);
+    m_selectFaceButton = new QPushButton("ÈÄâÊã©Ë¶ÅÊåñÂ≠îÁöÑÈù¢", this);
     m_selectionList = new QListWidget(this);
-    m_selectionList->setMaximumHeight(60); // œﬁ÷∆¡–±Ì∏ﬂ∂»
-    m_selectionList->addItem("…–Œ¥—°‘Ò√Ê...");
+    m_selectionList->setMaximumHeight(60);
+    m_selectionList->addItem("Â∞öÊú™ÈÄâÊã©Èù¢...");
     m_selectionList->setStyleSheet("QListWidget::item { color: #888; }");
 
     selectionLayout->addWidget(m_selectFaceButton);
     selectionLayout->addWidget(m_selectionList);
 
-	// parameters group
-    m_parametersGroup = new QGroupBox("≤Œ ˝", this);
+    // --- ÂèÇÊï∞ÁªÑ ---
+    m_parametersGroup = new QGroupBox("ÂèÇÊï∞", this);
     QFormLayout* parametersLayout = new QFormLayout(m_parametersGroup);
 
     m_diameterSpinBox = new QDoubleSpinBox(this);
     m_diameterSpinBox->setRange(0.1, 1000.0);
     m_diameterSpinBox->setValue(5.0);
     m_diameterSpinBox->setSuffix(" mm");
-    parametersLayout->addRow("÷±æ∂:", m_diameterSpinBox);
+    parametersLayout->addRow("Áõ¥ÂæÑ:", m_diameterSpinBox);
 
     m_depthSpinBox = new QDoubleSpinBox(this);
     m_depthSpinBox->setRange(0.1, 1000.0);
     m_depthSpinBox->setValue(5.0);
     m_depthSpinBox->setSuffix(" mm");
-    parametersLayout->addRow("…Ó∂»:", m_depthSpinBox);
+    parametersLayout->addRow("Ê∑±Â∫¶:", m_depthSpinBox);
 
-    parametersLayout->addRow(new QLabel("--- ø◊÷––ƒ◊¯±Í ---")); 
+    parametersLayout->addRow(new QLabel("--- Â≠î‰∏≠ÂøÉÂùêÊ†á ---"));
     m_xCoordSpinBox = new QDoubleSpinBox(this);
     m_xCoordSpinBox->setRange(-1000.0, 1000.0);
     m_xCoordSpinBox->setValue(0.0);
-    parametersLayout->addRow("◊¯±Í X:", m_xCoordSpinBox);
+    parametersLayout->addRow("ÂùêÊ†á X:", m_xCoordSpinBox);
 
     m_yCoordSpinBox = new QDoubleSpinBox(this);
     m_yCoordSpinBox->setRange(-1000.0, 1000.0);
     m_yCoordSpinBox->setValue(0.0);
-    parametersLayout->addRow("◊¯±Í Y:", m_yCoordSpinBox);
+    parametersLayout->addRow("ÂùêÊ†á Y:", m_yCoordSpinBox);
 
     m_zCoordSpinBox = new QDoubleSpinBox(this);
     m_zCoordSpinBox->setRange(-1000.0, 1000.0);
     m_zCoordSpinBox->setValue(0.0);
-    parametersLayout->addRow("◊¯±Í Z:", m_zCoordSpinBox);
+    parametersLayout->addRow("ÂùêÊ†á Z:", m_zCoordSpinBox);
 
-	// botton layout
+    // --- ÊåâÈíÆÁªÑ ---
     QHBoxLayout* buttonLayout = new QHBoxLayout();
-    m_okButton = new QPushButton("»∑∂®", this);
-    m_cancelButton = new QPushButton("»°œ˚", this);
-    m_okButton->setEnabled(false); // ƒ¨»œ≤ªø…”√£¨÷±µΩ—°‘Ò¡À√Ê
+    m_okButton = new QPushButton("Á°ÆÂÆö", this);
+    m_cancelButton = new QPushButton("ÂèñÊ∂à", this);
+    m_okButton->setEnabled(false); // ÈªòËÆ§‰∏çÂèØÁî®
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(m_cancelButton);
@@ -87,70 +91,77 @@ void CreateHoleDialog::setupUI() {
     mainLayout->addStretch();
     mainLayout->addLayout(buttonLayout);
 
-	// connect signals and slots
+    // --- ËøûÊé•‰ø°Âè∑ÂíåÊßΩ ---
     connect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectFaceClicked);
     connect(m_okButton, &QPushButton::clicked, this, &CreateHoleDialog::onAccept);
     connect(m_cancelButton, &QPushButton::clicked, this, &QDialog::reject);
+
+    // ÂΩìÂèÇÊï∞ÊîπÂèòÊó∂ÔºåËá™Âä®Êõ¥Êñ∞È¢ÑËßà
+    connect(m_diameterSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateHoleDialog::onParametersChanged);
+    connect(m_depthSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateHoleDialog::onParametersChanged);
+    connect(m_xCoordSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateHoleDialog::onParametersChanged);
+    connect(m_yCoordSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateHoleDialog::onParametersChanged);
+    connect(m_zCoordSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CreateHoleDialog::onParametersChanged);
 }
 
 void CreateHoleDialog::onSelectFaceClicked() {
     m_isSelectingFace = true;
-    m_selectFaceButton->setText("ÕÍ≥…");
+    m_selectFaceButton->setText("ÂÆåÊàê");
 
-    emit selectionModeChanged(true, "«Î—°‘Ò“ª∏ˆ√Ê”√”⁄Õ⁄ø◊");
+    emit selectionModeChanged(true, "ËØ∑ÈÄâÊã©‰∏Ä‰∏™Èù¢Áî®‰∫éÊåñÂ≠î");
 
-	// switch to selection mode
+    // ÂàáÊç¢ÊåâÈíÆÂäüËÉΩ
     disconnect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectFaceClicked);
     connect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectionFinished);
 }
 
 void CreateHoleDialog::cleanupAndRestoreView() {
+    // Â¶ÇÊûúÈ¢ÑËßàÊòØÊøÄÊ¥ªÁöÑÔºåÂú®ÂÖ≥Èó≠ÂØπËØùÊ°ÜÊó∂ËØ∑Ê±ÇÈáçÁΩÆ
+    if (m_previewActive) {
+        emit resetPreviewRequested();
+    }
+    // ÊÅ¢Â§çË¢´ËÆæ‰∏∫ÂçäÈÄèÊòéÁöÑÂÆû‰ΩìÁöÑÂ§ñËßÇ
     if (m_viewer && m_transparentShape) {
         m_viewer->ResetShapeDisplay(m_transparentShape);
     }
-    // πÿº¸£∫«Âø’÷∏’Î£¨«–∂œ”Îæ… µÃÂµƒ»Œ∫Œ¡™œµ
+    // ÂÖ≥ÈîÆÔºöÊ∏ÖÁ©∫ÊåáÈíàÔºåÂàáÊñ≠‰∏éÊóßÂÆû‰ΩìÁöÑ‰ªª‰ΩïËÅîÁ≥ª
     m_transparentShape = nullptr;
 }
 
 void CreateHoleDialog::onObjectSelected(const cad_core::ShapePtr& shape) {
     if (m_isSelectingFace) {
-        m_targetShape = shape; 
+        m_targetShape = shape;
     }
 }
-
 
 void CreateHoleDialog::onFaceSelected(const TopoDS_Face& face) {
     if (m_isSelectingFace) {
         m_selectedFace = face;
 
-        // πÿº¸¬ﬂº≠£∫
-        // ¥À ± m_targetShape ”¶∏√“—æ≠±ª onObjectSelected …Ë÷√Œ™µ±«∞√Êµƒ∏∏ µÃÂ°£
         if (m_viewer && m_targetShape) {
-
-            // 1. »Áπ˚÷Æ«∞”–±µƒ µÃÂ «∞ÎÕ∏√˜µƒ£¨œ»∞—À¸ª÷∏¥‘≠◊¥
             if (m_transparentShape && m_transparentShape != m_targetShape) {
                 m_viewer->ResetShapeDisplay(m_transparentShape);
             }
-
-            // 2. Ω´µ±«∞√ÊÀ˘ Ùµƒ µÃÂ…Ë÷√Œ™∞ÎÕ∏√˜
-            m_viewer->SetShapeTransparency(m_targetShape, 0.5); // …Ë÷√Œ™50%Õ∏√˜∂»
-
-            // 3. º«¬ºœ¬ƒƒ∏ˆ µÃÂ±ªŒ“√«±‰Õ∏√˜¡À£¨“‘±„÷Æ∫Ûª÷∏¥
+            m_viewer->SetShapeTransparency(m_targetShape, 0.5);
             m_transparentShape = m_targetShape;
         }
 
         updateSelectionDisplay();
         checkCanAccept();
+
+        // ÂΩì‰∏Ä‰∏™Èù¢Ë¢´ÈÄâ‰∏≠Êó∂ÔºåÁ´ãÂç≥ÊøÄÊ¥ªÂπ∂ÊòæÁ§∫È¢ÑËßà
+        onParametersChanged();
+        m_previewActive = true;
     }
 }
 
 void CreateHoleDialog::onSelectionFinished() {
     m_isSelectingFace = false;
-    m_selectFaceButton->setText("—°‘Ò");
+    m_selectFaceButton->setText("ÈÄâÊã©");
 
     emit selectionModeChanged(false, "");
 
-	// reset target shape and selected face
+    // ÊÅ¢Â§çÊåâÈíÆÂäüËÉΩ
     disconnect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectionFinished);
     connect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectFaceClicked);
 }
@@ -158,11 +169,11 @@ void CreateHoleDialog::onSelectionFinished() {
 void CreateHoleDialog::updateSelectionDisplay() {
     m_selectionList->clear();
     if (!m_selectedFace.IsNull()) {
-        m_selectionList->addItem("“——°‘Ò 1 ∏ˆ√Ê");
+        m_selectionList->addItem("Â∑≤ÈÄâÊã© 1 ‰∏™Èù¢");
         m_selectionList->setStyleSheet("QListWidget::item { color: green; }");
     }
     else {
-        m_selectionList->addItem("…–Œ¥—°‘Ò√Ê...");
+        m_selectionList->addItem("Â∞öÊú™ÈÄâÊã©Èù¢...");
         m_selectionList->setStyleSheet("QListWidget::item { color: #888; }");
     }
 }
@@ -174,20 +185,69 @@ void CreateHoleDialog::checkCanAccept() {
 
 void CreateHoleDialog::onAccept() {
     if (!m_targetShape || m_selectedFace.IsNull()) {
-        QMessageBox::warning(this, "¥ÌŒÛ", "«Îœ»—°‘Ò“ª∏ˆ”––ßµƒ√Ê°£");
+        QMessageBox::warning(this, "ÈîôËØØ", "ËØ∑ÂÖàÈÄâÊã©‰∏Ä‰∏™ÊúâÊïàÁöÑÈù¢„ÄÇ");
         return;
     }
+    // Â¶ÇÊûúÈ¢ÑËßàÊòØÊøÄÊ¥ªÁöÑÔºåÂÖàÈáçÁΩÆÂÆÉ
+    if (m_previewActive) {
+        emit resetPreviewRequested();
+    }
+
     double diameter = m_diameterSpinBox->value();
     double depth = m_depthSpinBox->value();
-
-    // ∂¡»°◊¯±Í÷µ
     double x = m_xCoordSpinBox->value();
     double y = m_yCoordSpinBox->value();
     double z = m_zCoordSpinBox->value();
 
-    // ∑¢…‰¥¯”–◊¯±Í–≈œ¢µƒ–¬–≈∫≈
     emit operationRequested(m_targetShape, m_selectedFace, diameter, depth, x, y, z);
     accept();
+}
+
+void CreateHoleDialog::onParametersChanged()
+{
+    // Âè™ÊúâÂú®È¢ÑËßàÊøÄÊ¥ªÊó∂ÊâçÊõ¥Êñ∞
+    if (m_previewActive) {
+        cad_core::ShapePtr previewShape = createHolePreviewShape();
+        if (previewShape) {
+            emit previewRequested(previewShape);
+        }
+    }
+}
+
+cad_core::ShapePtr CreateHoleDialog::createHolePreviewShape() const
+{
+    if (!m_targetShape || m_selectedFace.IsNull()) {
+        return nullptr;
+    }
+
+    Handle(Geom_Surface) surface = BRep_Tool::Surface(m_selectedFace);
+    Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
+    if (plane.IsNull()) {
+        return nullptr; // È¢ÑËßàÂè™ÊîØÊåÅÂπ≥Èù¢
+    }
+
+    gp_Dir holeDirection = plane->Axis().Direction();
+    if (m_selectedFace.Orientation() == TopAbs_REVERSED) {
+        holeDirection.Reverse();
+    }
+
+    // ÂàõÂª∫ÂúÜÊü±‰Ωì‰Ωú‰∏∫È¢ÑËßà
+    auto cylinder = cad_core::ShapeFactory::CreateCylinder(m_diameterSpinBox->value() / 2.0, m_depthSpinBox->value());
+    if (!cylinder) {
+        return nullptr;
+    }
+
+    gp_Trsf transformation;
+    gp_Ax3 targetCoordinateSystem(gp_Pnt(m_xCoordSpinBox->value(), m_yCoordSpinBox->value(), m_zCoordSpinBox->value()), holeDirection.Reversed());
+    transformation.SetTransformation(targetCoordinateSystem, gp::XOY());
+
+    // Â∫îÁî®ÂèòÊç¢
+    BRepBuilderAPI_Transform transformer(cylinder->GetOCCTShape(), transformation, Standard_True);
+    if (transformer.IsDone()) {
+        return std::make_shared<cad_core::Shape>(transformer.Shape());
+    }
+
+    return nullptr;
 }
 
 void CreateHoleDialog::updateCenterCoords(double x, double y, double z) {

@@ -46,6 +46,11 @@ public:
     void DisplayShape(const cad_core::ShapePtr& shape);
     void RemoveShape(const cad_core::ShapePtr& shape);
     void ClearShapes();
+
+	// 预览形状显示
+    void DisplayPreviewShape(const cad_core::ShapePtr& shape);
+    void ClearPreviewShapes();
+
     void RedrawAll();
     virtual QPaintEngine* paintEngine() const;
     
@@ -156,6 +161,9 @@ private:
     // 用于面选择的高亮状态
     std::vector<TopoDS_Face> m_selectedFaces;
     std::vector<Handle(AIS_InteractiveObject)> m_highlightedFaces;
+
+	// 用于预览形状的显示
+    std::vector<Handle(AIS_InteractiveObject)> m_previewAISShapes;
     
     // 草图模式
     std::unique_ptr<class SketchMode> m_sketchMode;

@@ -25,7 +25,7 @@ class CreateHoleDialog : public QDialog {
 
 public:
     explicit CreateHoleDialog(QtOccView* viewer, QWidget* parent = nullptr);
-    // 添加析构函数，用于恢复透明度
+    // 添加析构函数，用于恢复状态
     ~CreateHoleDialog();
 
     void onObjectSelected(const cad_core::ShapePtr& shape);
@@ -38,6 +38,8 @@ signals:
                             double diameter, 
                             double depth, 
                             double x, double y, double z);
+    void previewRequested(const cad_core::ShapePtr& holePreviewShape);
+    void resetPreviewRequested();
 
     void selectionModeChanged(bool enabled, const QString& prompt);
 
@@ -45,6 +47,7 @@ private slots:
     void onSelectFaceClicked();
     void onSelectionFinished();
     void onAccept();
+    void onParametersChanged();
 
 private:
     void setupUI();
@@ -56,6 +59,7 @@ private:
     TopoDS_Face m_selectedFace;         // 存储被选中的面
     bool m_isSelectingFace;             // 标记是否正处于“选择面”的状态
     QtOccView* m_viewer; // 指向3D视图
+	bool m_previewActive;// 是否有预览激活
     cad_core::ShapePtr m_transparentShape; // 记录被设为透明的实体
 
     // UI 控件
@@ -72,6 +76,8 @@ private:
 
     QPushButton* m_okButton;
     QPushButton* m_cancelButton;
+
+    cad_core::ShapePtr createHolePreviewShape() const;
 };
 
 } // namespace cad_ui#pragma once

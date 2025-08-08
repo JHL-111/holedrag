@@ -1535,12 +1535,12 @@ void MainWindow::OnCreateHole() {
     // 创建对话框时传入 viewer 指针
     m_currentHoleDialog = new CreateHoleDialog(m_viewer, this);
     connect(m_viewer, &QtOccView::ShapeSelected, m_currentHoleDialog, &CreateHoleDialog::onObjectSelected);
-
     connect(m_viewer, &QtOccView::FaceSelected, m_currentHoleDialog, &CreateHoleDialog::onFaceSelected);
     connect(m_currentHoleDialog, &CreateHoleDialog::selectionModeChanged, this, &MainWindow::OnSelectionModeChanged);
     connect(m_currentHoleDialog, &CreateHoleDialog::operationRequested, this, &MainWindow::OnHoleOperationRequested);
+    connect(m_currentHoleDialog, &CreateHoleDialog::previewRequested, this, &MainWindow::OnHolePreviewRequested);
+    connect(m_currentHoleDialog, &CreateHoleDialog::resetPreviewRequested, this, &MainWindow::OnHoleResetPreviewRequested);
     connect(this, &MainWindow::faceSelectionInfo, m_currentHoleDialog, &CreateHoleDialog::updateCenterCoords);
-
     connect(m_currentHoleDialog, &QDialog::finished, this, [this](int result) {
         if (m_currentHoleDialog) {
             // 调用清理函数恢复视图
@@ -2474,7 +2474,24 @@ void MainWindow::OnHoleOperationRequested(const cad_core::ShapePtr& targetShape,
     }
 
 
+void MainWindow::OnHolePreviewRequested(const cad_core::ShapePtr & holePreviewShape)
+{
+    if (!m_viewer || !holePreviewShape) {
+        return;
+    }
+    m_viewer->DisplayPreviewShape(holePreviewShape);
 }
+
+void MainWindow::OnHoleResetPreviewRequested()
+{
+    if (!m_viewer) {
+        return;
+    }
+
+    m_viewer->ClearPreviewShapes();
+}
+
+
 
 } // namespace cad_ui
 

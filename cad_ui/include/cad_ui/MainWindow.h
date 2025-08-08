@@ -160,6 +160,9 @@ namespace cad_ui {
         void OnTransformPreviewRequested(std::shared_ptr<cad_core::TransformCommand> command);
         void OnTransformResetRequested();
 
+        void OnHolePreviewRequested(const cad_core::ShapePtr& holePreviewShape);
+        void OnHoleResetPreviewRequested();
+
         // 选择模式组合框
         void OnSelectionModeComboChanged(int index);
 

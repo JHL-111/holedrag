@@ -1085,6 +1085,37 @@ void QtOccView::ResetShapeDisplay(const cad_core::ShapePtr& shape) {
     }
 }
 
+void QtOccView::DisplayPreviewShape(const cad_core::ShapePtr& shape)
+{
+    if (!shape || shape->GetOCCTShape().IsNull() || m_context.IsNull()) {
+        return;
+    }
+    // 先清除旧的预览
+    ClearPreviewShapes();
+    Handle(AIS_Shape) aisShape = new AIS_Shape(shape->GetOCCTShape());
+
+    // 设置预览样式：半透明红色线框 
+    aisShape->SetDisplayMode(AIS_WireFrame);
+    aisShape->SetColor(Quantity_NOC_RED1);
+    aisShape->SetTransparency(0.5);
+
+    m_context->Display(aisShape, Standard_False);
+    m_previewAISShapes.push_back(aisShape);
+
+    m_view->Redraw();
+}
+
+void QtOccView::ClearPreviewShapes()
+{
+    if (m_context.IsNull()) return;
+    for (const auto& aisShape : m_previewAISShapes) {
+        m_context->Remove(aisShape, Standard_False);
+    }
+    m_previewAISShapes.clear();
+    m_view->Redraw();
+}
+
+
 // =============================================================================
 // Sketch Mode Implementation
 // =============================================================================
