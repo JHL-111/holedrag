@@ -703,7 +703,7 @@ void QtOccView::HandleSelection(const QPoint& point) {
                             TopoDS_Face face = TopoDS::Face(selectedShape);
                             HighlightFace(face);
                             qDebug() << "Face selected, emitting FaceSelected signal";
-                            emit FaceSelected(face);
+                            emit FaceSelected(face, parentShape);
                             break; // 只处理第一个选中的面
                         }
                     }

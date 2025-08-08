@@ -169,9 +169,10 @@ namespace cad_ui {
         // 草图模式信号
         void OnSketchModeEntered();
         void OnSketchModeExited();
-        void OnFaceSelected(const TopoDS_Face& face);
         void OnFaceSelectedForSketch(const TopoDS_Face& face);
 
+		// 视图交互
+        void OnFaceSelected(const TopoDS_Face& face, const cad_core::ShapePtr& parentShape);
         void OnShapeSelected(const cad_core::ShapePtr& shape);
         void OnViewChanged();
 

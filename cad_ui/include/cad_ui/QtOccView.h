@@ -105,7 +105,7 @@ public:
 
 signals:
     void ShapeSelected(const cad_core::ShapePtr& shape);
-    void FaceSelected(const TopoDS_Face& face);
+    void FaceSelected(const TopoDS_Face& face, const cad_core::ShapePtr& parentShape);
     void ViewChanged();
     void SketchModeEntered();
     void SketchModeExited();
