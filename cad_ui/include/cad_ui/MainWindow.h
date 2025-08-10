@@ -163,6 +163,9 @@ namespace cad_ui {
         void OnHolePreviewRequested(const cad_core::ShapePtr& holePreviewShape);
         void OnHoleResetPreviewRequested();
 
+        // 移动预览圆柱体
+        // void OnHolePreviewMoved(double x, double y, double z);
+
         // 选择模式组合框
         void OnSelectionModeComboChanged(int index);
 

@@ -20,6 +20,8 @@
 #include <TopAbs.hxx>
 #include <Prs3d_LineAspect.hxx>
 #include <Quantity_Color.hxx>
+#include <GeomAPI_ProjectPointOnSurf.hxx>
+#include <Geom_Plane.hxx>
 #pragma execution_character_set("utf-8")
 
 #ifdef _WIN32
@@ -432,6 +434,36 @@ void QtOccView::resizeEvent(QResizeEvent* event) {
 }
 
 void QtOccView::mousePressEvent(QMouseEvent* event) {
+    /*------------拖拽处理。点击------------------ -
+    
+    if (m_isDraggingPreview && event->button() == Qt::LeftButton) {
+        m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
+        if (m_context->HasDetected()) {
+            Handle(AIS_InteractiveObject) detectedObj = m_context->DetectedInteractive();
+            // 检查侦测到的物体，是不是预览圆柱体
+            bool isPreviewObject = false;
+            for (const auto& previewObj : m_previewAISShapes) {
+                if (previewObj == detectedObj) {
+                    isPreviewObject = true;
+                    break;
+                }
+            }
+            // 如果确实点中了预览物体，就开始拖拽流程
+            if (isPreviewObject) {
+                m_draggedObject = detectedObj; // 记录下“抓住了”哪个物体
+                m_currentMouseButton = event->button(); 
+                m_lastMousePos = event->pos(); // 记录屏幕起始点，用于后续计算
+
+                // 将屏幕点击点投影到三维平面上，作为拖拽的“三维锚点”
+                Standard_Real X, Y, Z;
+                m_view->Convert(event->pos().x(), event->pos().y(), X, Y, Z); // 直接调用
+                GeomAPI_ProjectPointOnSurf projer(gp_Pnt(X, Y, Z), new Geom_Plane(m_draggingPlane));
+                return; 
+            }
+        }
+    }
+	------------拖拽处理。点击结束-------------------*/
+   
     m_lastMousePos = event->pos();
     m_currentMouseButton = event->button();
     
@@ -450,7 +482,20 @@ void QtOccView::mousePressEvent(QMouseEvent* event) {
     }
 }
 
-void QtOccView::mouseMoveEvent(QMouseEvent* event) {
+void QtOccView::mouseMoveEvent(QMouseEvent* event) {	
+    
+    /*---------------拖拽处理。移动-------------------
+    if (m_isDraggingPreview && m_draggedObject.IsNull() == Standard_False && m_currentMouseButton == Qt::LeftButton) {
+        Standard_Real newX, newY, newZ;
+        m_view->Convert(event->pos().x(), event->pos().y(), newX, newY, newZ);
+
+        GeomAPI_ProjectPointOnSurf projer(gp_Pnt(newX, newY, newZ), new Geom_Plane(m_draggingPlane));
+        gp_Pnt current3D_pnt = projer.NearestPoint(); // 获取鼠标坐标
+        emit previewObjectMoved(current3D_pnt.X(), current3D_pnt.Y(), current3D_pnt.Z());
+        return; 
+    }
+	---------------拖拽处理。移动结束-------------------*/
+    
     if (m_view.IsNull()) return;
     
     // 发射鼠标位置信号（屏幕坐标）
@@ -497,6 +542,13 @@ void QtOccView::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void QtOccView::mouseReleaseEvent(QMouseEvent* event) {
+    
+	/*-------------- - 拖拽处理。释放-------------------
+    if (m_isDraggingPreview && event->button() == Qt::LeftButton) {
+        m_draggedObject.Nullify(); // 释放被“抓住”的物体
+    }
+	---------------拖拽处理。释放结束-------------------*/
+    
     // 优先处理草图模式
     if (IsInSketchMode()) {
         m_sketchMode->HandleMouseRelease(event);

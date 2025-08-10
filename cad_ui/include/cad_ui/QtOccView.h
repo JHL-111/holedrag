@@ -50,6 +50,8 @@ public:
 	// 预览形状显示
     void DisplayPreviewShape(const cad_core::ShapePtr& shape);
     void ClearPreviewShapes();
+    void EnablePreviewDragging(const gp_Pln& plane);// 预览拖拽
+    void DisablePreviewDragging();
 
     void RedrawAll();
     virtual QPaintEngine* paintEngine() const;
@@ -76,6 +78,7 @@ public:
     void UnhighlightAllEdges();
     void UnhighlightAllVertices();
     void UnhighlightAllFaces();
+	
     
     // 高级选择方法
     std::vector<cad_core::SelectionInfo> GetSelectedShapes() const;
@@ -103,6 +106,7 @@ public:
     void ExitSketchMode();
     void StartRectangleTool();
 
+
 signals:
     void ShapeSelected(const cad_core::ShapePtr& shape);
     void FaceSelected(const TopoDS_Face& face, const cad_core::ShapePtr& parentShape);
@@ -111,6 +115,7 @@ signals:
     void SketchModeExited();
     void MousePositionChanged(int x, int y);
     void Mouse3DPositionChanged(double x, double y, double z);
+	void previewObjectMoved(double x, double y, double z);// 拖拽时告知新作标
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -164,6 +169,12 @@ private:
 
 	// 用于预览形状的显示
     std::vector<Handle(AIS_InteractiveObject)> m_previewAISShapes;
+
+	// 拖拽预览相关（未实现）
+    bool m_isDraggingPreview;
+    Handle(AIS_InteractiveObject) m_draggedObject;
+    gp_Pln m_draggingPlane;
+    gp_Pnt m_dragStartPoint3D;
     
     // 草图模式
     std::unique_ptr<class SketchMode> m_sketchMode;
