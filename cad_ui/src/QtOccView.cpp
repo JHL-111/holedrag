@@ -473,21 +473,37 @@ void QtOccView::mouseMoveEvent(QMouseEvent* event) {
     
     // 如果正处于挖孔模式且用户正按着左键
     if (m_isDraggingPreview && m_currentMouseButton == Qt::LeftButton) {
-        // 1. 将2D屏幕坐标转换为3D射线
-        gp_Pnt eye = m_view->Camera()->Eye();
-        Standard_Real pntX, pntY, pntZ;
-        m_view->Convert(event->pos().x(), event->pos().y(), pntX, pntY, pntZ);
-        gp_Pnt projectedPnt(pntX, pntY, pntZ);
-        gp_Dir rayDir(projectedPnt.XYZ() - eye.XYZ());
-        gp_Lin aRay(eye, rayDir);
+        try {
+            // 获取鼠标在近、远截面上的两个三维点，以构建射线
+            gp_Pnt aPntNear, aPntFar;
+            Standard_Real Xp = event->pos().x();
+            Standard_Real Yp = event->pos().y();
+            Standard_Real Xv, Yv, Zv;
+            Standard_Real Dx, Dy, Dz;
 
-        // 2. 计算射线与工作台面(m_draggingPlane)的交点
-        GeomAPI_IntCS intersector(new Geom_Line(aRay), new Geom_Plane(m_draggingPlane));
+            // 转换屏幕坐标到3D坐标
+            m_view->ConvertWithProj(Xp, Yp, Xv, Yv, Zv, Dx, Dy, Dz);
 
-        // 3. 如果找到交点，就通过信号广播出去
-        if (intersector.IsDone() && intersector.NbPoints() > 0) {
-            gp_Pnt current3D_pnt = intersector.Point(1);
-            emit previewObjectMoved(current3D_pnt.X(), current3D_pnt.Y(), current3D_pnt.Z());
+            // 构建近点和远点
+            aPntNear = gp_Pnt(Xv, Yv, Zv);
+            aPntFar = gp_Pnt(Xv + Dx * 1000, Yv + Dy * 1000, Zv + Dz * 1000);
+
+            // 使用这两个点构建3D射线
+            gp_Lin aRay(aPntNear, gp_Dir(aPntFar.XYZ() - aPntNear.XYZ()));
+
+            // 计算射线与m_draggingPlane的交点
+            Handle(Geom_Line) rayLine = new Geom_Line(aRay);
+            Handle(Geom_Plane) dragPlane = new Geom_Plane(m_draggingPlane);
+            GeomAPI_IntCS intersector(rayLine, dragPlane);
+
+            // 如果找到交点，就通过信号传播出去
+            if (intersector.IsDone() && intersector.NbPoints() > 0) {
+                gp_Pnt current3D_pnt = intersector.Point(1);
+                emit previewObjectMoved(current3D_pnt.X(), current3D_pnt.Y(), current3D_pnt.Z());
+            }
+        }
+        catch (const Standard_Failure& e) {
+            qDebug() << "Error during preview dragging:" << e.GetMessageString();
         }
         return; // 阻止后续的相机平移操作
     }

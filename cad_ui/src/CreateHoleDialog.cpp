@@ -237,9 +237,9 @@ cad_core::ShapePtr CreateHoleDialog::createHolePreviewShape() const
         return nullptr; // 预览只支持平面
     }
 
-    gp_Dir holeDirection = plane->Axis().Direction();
+    gp_Dir faceNormal = plane->Axis().Direction();
     if (m_selectedFace.Orientation() == TopAbs_REVERSED) {
-        holeDirection.Reverse();
+        faceNormal.Reverse();
     }
 
     // 创建圆柱体作为预览
@@ -248,12 +248,20 @@ cad_core::ShapePtr CreateHoleDialog::createHolePreviewShape() const
         return nullptr;
     }
 
-    gp_Trsf transformation;
-    gp_Ax3 targetCoordinateSystem(gp_Pnt(m_xCoordSpinBox->value(), m_yCoordSpinBox->value(), m_zCoordSpinBox->value()), holeDirection.Reversed());
-    transformation.SetTransformation(targetCoordinateSystem, gp::XOY());
+    gp_Trsf mainTransformation;
+    gp_Ax3 targetCoordinateSystem(gp_Pnt(m_xCoordSpinBox->value(), m_yCoordSpinBox->value(), m_zCoordSpinBox->value()), faceNormal.Reversed());
+    mainTransformation.SetTransformation(targetCoordinateSystem, gp::XOY());
 
-    // 应用变换
-    BRepBuilderAPI_Transform transformer(cylinder->GetOCCTShape(), transformation, Standard_True);
+    const double Z_FIGHTING_OFFSET = 1e-4; 
+    // 创建一个沿法线方向的平移向量偏移变换
+    gp_Vec offsetVector(faceNormal.XYZ() * Z_FIGHTING_OFFSET);
+    gp_Trsf offsetTransformation;
+    offsetTransformation.SetTranslation(offsetVector);
+    // 将偏移变换应用到主变换之前
+    gp_Trsf finalTransformation = offsetTransformation * mainTransformation;
+
+    // 应用最终的变换 
+    BRepBuilderAPI_Transform transformer(cylinder->GetOCCTShape(), finalTransformation, Standard_True);
     if (transformer.IsDone()) {
         return std::make_shared<cad_core::Shape>(transformer.Shape());
     }
