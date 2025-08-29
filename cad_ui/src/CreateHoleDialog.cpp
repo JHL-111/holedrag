@@ -108,6 +108,10 @@ void CreateHoleDialog::onSelectFaceClicked() {
     m_isSelectingFace = true;
     m_selectFaceButton->setText("完成");
 
+    if (m_viewer) {
+        m_viewer->ClearSelection();
+    }
+
     emit selectionModeChanged(true, "请选择一个面用于挖孔");
 
     // 切换按钮功能
@@ -142,27 +146,7 @@ void CreateHoleDialog::onFaceSelected(const TopoDS_Face& face) {
     if (m_isSelectingFace) {
         m_selectedFace = face;
 
-        if (m_viewer && m_targetShape && !face.IsNull()) {
-            if (m_transparentShape && m_transparentShape != m_targetShape) {
-                m_viewer->ResetShapeDisplay(m_transparentShape);
-            }
-            m_viewer->SetShapeTransparency(m_targetShape, 0.8);
-            m_transparentShape = m_targetShape;
-
-            Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
-            Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
-            if (!plane.IsNull()) {
-                // 命令视图进入拖拽模式
-                m_viewer->EnablePreviewDragging(plane->Pln());
-            }
-        }
-
         updateSelectionDisplay();
-        checkCanAccept();
-
-        // 当一个面被选中时，立即激活并显示预览
-        onParametersChanged();
-        m_previewActive = true;
     }
 }
 
@@ -172,9 +156,36 @@ void CreateHoleDialog::onSelectionFinished() {
 
     emit selectionModeChanged(false, "");
 
-    // 恢复按钮功能
+    // 恢复按钮的原始点击信号
     disconnect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectionFinished);
     connect(m_selectFaceButton, &QPushButton::clicked, this, &CreateHoleDialog::onSelectFaceClicked);
+
+    if (m_viewer && !m_selectedFace.IsNull()) {
+        m_viewer->ClearSelection();
+
+        // 将被挖孔的物体设为半透明
+        if (m_targetShape) {
+            if (m_transparentShape && m_transparentShape != m_targetShape) {
+                m_viewer->ResetShapeDisplay(m_transparentShape);
+            }
+            m_viewer->SetShapeTransparency(m_targetShape, 0.85);
+            m_transparentShape = m_targetShape;
+        }
+
+        // 启用预览拖拽功能
+        Handle(Geom_Surface) surface = BRep_Tool::Surface(m_selectedFace);
+        Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
+        if (!plane.IsNull()) {
+            m_viewer->EnablePreviewDragging(plane->Pln());
+        }
+
+        // 激活并显示
+        m_previewActive = true;
+        onParametersChanged();
+       
+    }
+ 
+    checkCanAccept();
 }
 
 void CreateHoleDialog::updateSelectionDisplay() {
