@@ -36,7 +36,7 @@ namespace cad_ui {
 
 QtOccView::QtOccView(QWidget* parent) 
     : QWidget(parent), m_isInitialized(false), m_currentMouseButton(Qt::NoButton),
-      m_currentSelectedShape(nullptr), m_currentSelectionMode(0) {
+      m_currentSelectedShape(nullptr), m_currentSelectionMode(0), m_isDraggingPreview(false) {
     
     // Set widget attributes to reduce flicker
     setAttribute(Qt::WA_PaintOnScreen);
@@ -434,35 +434,19 @@ void QtOccView::resizeEvent(QResizeEvent* event) {
 }
 
 void QtOccView::mousePressEvent(QMouseEvent* event) {
-    /*------------拖拽处理。点击------------------ -
-    
+
+    // 如果正处于挖孔拖拽模式，并且用户按下了左键
     if (m_isDraggingPreview && event->button() == Qt::LeftButton) {
+        // 检查是否点中了物体，以开始拖拽
         m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
         if (m_context->HasDetected()) {
-            Handle(AIS_InteractiveObject) detectedObj = m_context->DetectedInteractive();
-            // 检查侦测到的物体，是不是预览圆柱体
-            bool isPreviewObject = false;
-            for (const auto& previewObj : m_previewAISShapes) {
-                if (previewObj == detectedObj) {
-                    isPreviewObject = true;
-                    break;
-                }
-            }
-            // 如果确实点中了预览物体，就开始拖拽流程
-            if (isPreviewObject) {
-                m_draggedObject = detectedObj; // 记录下“抓住了”哪个物体
-                m_currentMouseButton = event->button(); 
-                m_lastMousePos = event->pos(); // 记录屏幕起始点，用于后续计算
-
-                // 将屏幕点击点投影到三维平面上，作为拖拽的“三维锚点”
-                Standard_Real X, Y, Z;
-                m_view->Convert(event->pos().x(), event->pos().y(), X, Y, Z); // 直接调用
-                GeomAPI_ProjectPointOnSurf projer(gp_Pnt(X, Y, Z), new Geom_Plane(m_draggingPlane));
-                return; 
-            }
+            // 记录下“左键已按下”的状态，为mouseMove做准备
+            m_currentMouseButton = event->button();
+            // 立即更新一次预览，让孔“吸附”到鼠标位置
+            mouseMoveEvent(event);
+            return; // 阻止后续的相机旋转操作
         }
     }
-	------------拖拽处理。点击结束-------------------*/
    
     m_lastMousePos = event->pos();
     m_currentMouseButton = event->button();
@@ -484,17 +468,26 @@ void QtOccView::mousePressEvent(QMouseEvent* event) {
 
 void QtOccView::mouseMoveEvent(QMouseEvent* event) {	
     
-    /*---------------拖拽处理。移动-------------------
-    if (m_isDraggingPreview && m_draggedObject.IsNull() == Standard_False && m_currentMouseButton == Qt::LeftButton) {
-        Standard_Real newX, newY, newZ;
-        m_view->Convert(event->pos().x(), event->pos().y(), newX, newY, newZ);
+    // 如果正处于挖孔模式且用户正按着左键
+    if (m_isDraggingPreview && m_currentMouseButton == Qt::LeftButton) {
+        // 1. 将2D屏幕坐标转换为3D射线
+        gp_Pnt eye = m_view->Camera()->Eye();
+        Standard_Real pntX, pntY, pntZ;
+        m_view->Convert(event->pos().x(), event->pos().y(), pntX, pntY, pntZ);
+        gp_Pnt projectedPnt(pntX, pntY, pntZ);
+        gp_Dir rayDir(projectedPnt.XYZ() - eye.XYZ());
+        gp_Lin aRay(eye, rayDir);
 
-        GeomAPI_ProjectPointOnSurf projer(gp_Pnt(newX, newY, newZ), new Geom_Plane(m_draggingPlane));
-        gp_Pnt current3D_pnt = projer.NearestPoint(); // 获取鼠标坐标
-        emit previewObjectMoved(current3D_pnt.X(), current3D_pnt.Y(), current3D_pnt.Z());
-        return; 
+        // 2. 计算射线与工作台面(m_draggingPlane)的交点
+        GeomAPI_IntCS intersector(new Geom_Line(aRay), new Geom_Plane(m_draggingPlane));
+
+        // 3. 如果找到交点，就通过信号广播出去
+        if (intersector.IsDone() && intersector.NbPoints() > 0) {
+            gp_Pnt current3D_pnt = intersector.Point(1);
+            emit previewObjectMoved(current3D_pnt.X(), current3D_pnt.Y(), current3D_pnt.Z());
+        }
+        return; // 阻止后续的相机平移操作
     }
-	---------------拖拽处理。移动结束-------------------*/
     
     if (m_view.IsNull()) return;
     
@@ -543,11 +536,12 @@ void QtOccView::mouseMoveEvent(QMouseEvent* event) {
 
 void QtOccView::mouseReleaseEvent(QMouseEvent* event) {
     
-	/*-------------- - 拖拽处理。释放-------------------
+    // 如果在拖拽时松开了左键
     if (m_isDraggingPreview && event->button() == Qt::LeftButton) {
-        m_draggedObject.Nullify(); // 释放被“抓住”的物体
+        // 清除“左键已按下”的状态，从而停止拖拽
+        m_currentMouseButton = Qt::NoButton;
+        return; // 阻止其他操作
     }
-	---------------拖拽处理。释放结束-------------------*/
     
     // 优先处理草图模式
     if (IsInSketchMode()) {

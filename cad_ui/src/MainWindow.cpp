@@ -1540,7 +1540,7 @@ void MainWindow::OnCreateHole() {
     connect(m_currentHoleDialog, &CreateHoleDialog::previewRequested, this, &MainWindow::OnHolePreviewRequested);
     connect(m_currentHoleDialog, &CreateHoleDialog::resetPreviewRequested, this, &MainWindow::OnHoleResetPreviewRequested);
     connect(this, &MainWindow::faceSelectionInfo, m_currentHoleDialog, &CreateHoleDialog::updateCenterCoords);
-
+    connect(m_viewer, &QtOccView::previewObjectMoved, m_currentHoleDialog, &CreateHoleDialog::updateCenterCoords);
     connect(m_currentHoleDialog, &QDialog::finished, this, [this](int result) {
         if (m_currentHoleDialog) {
             // 调用清理函数恢复视图

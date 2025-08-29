@@ -8,7 +8,7 @@
 #include <QTimer>
 #include <map>
 #include <memory>
-
+#include <gp_Pln.hxx>
 #include <V3d_View.hxx>
 #include <V3d_Viewer.hxx>
 #include <AIS_InteractiveContext.hxx>
@@ -170,11 +170,9 @@ private:
 	// 用于预览形状的显示
     std::vector<Handle(AIS_InteractiveObject)> m_previewAISShapes;
 
-	// 拖拽预览相关（未实现）
+	// 拖拽预览相关
     bool m_isDraggingPreview;
-    Handle(AIS_InteractiveObject) m_draggedObject;
-    gp_Pln m_draggingPlane;
-    gp_Pnt m_dragStartPoint3D;
+    gp_Pln m_draggingPlane;  
     
     // 草图模式
     std::unique_ptr<class SketchMode> m_sketchMode;

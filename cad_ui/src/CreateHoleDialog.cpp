@@ -124,7 +124,11 @@ void CreateHoleDialog::cleanupAndRestoreView() {
     if (m_viewer && m_transparentShape) {
         m_viewer->ResetShapeDisplay(m_transparentShape);
     }
-    // 关键：清空指针，切断与旧实体的任何联系
+    // 命令视图退出拖拽模式
+    if (m_viewer) {
+        m_viewer->DisablePreviewDragging();
+    }
+
     m_transparentShape = nullptr;
 }
 
@@ -138,12 +142,19 @@ void CreateHoleDialog::onFaceSelected(const TopoDS_Face& face) {
     if (m_isSelectingFace) {
         m_selectedFace = face;
 
-        if (m_viewer && m_targetShape) {
+        if (m_viewer && m_targetShape && !face.IsNull()) {
             if (m_transparentShape && m_transparentShape != m_targetShape) {
                 m_viewer->ResetShapeDisplay(m_transparentShape);
             }
             m_viewer->SetShapeTransparency(m_targetShape, 0.8);
             m_transparentShape = m_targetShape;
+
+            Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
+            Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surface);
+            if (!plane.IsNull()) {
+                // 命令视图进入拖拽模式
+                m_viewer->EnablePreviewDragging(plane->Pln());
+            }
         }
 
         updateSelectionDisplay();
@@ -254,6 +265,7 @@ void CreateHoleDialog::updateCenterCoords(double x, double y, double z) {
     m_xCoordSpinBox->setValue(x);
     m_yCoordSpinBox->setValue(y);
     m_zCoordSpinBox->setValue(z);
+    onParametersChanged();
 }
 
 } // namespace cad_ui
