@@ -22,6 +22,9 @@
 #include <Quantity_Color.hxx>
 #include <GeomAPI_ProjectPointOnSurf.hxx>
 #include <Geom_Plane.hxx>
+#include <Geom_Line.hxx>
+
+#include <GeomAPI_IntCS.hxx>
 #pragma execution_character_set("utf-8")
 
 #ifdef _WIN32
@@ -1229,6 +1232,18 @@ void QtOccView::StartRectangleTool() {
     m_sketchMode->StartRectangleTool();
     qDebug() << "Started rectangle tool";
 }
+
+void QtOccView::EnablePreviewDragging(const gp_Pln& plane) {
+    m_isDraggingPreview = true;
+    m_draggingPlane = plane;
+    qDebug() << "Preview dragging enabled.";
+}
+
+void QtOccView::DisablePreviewDragging() {
+    m_isDraggingPreview = false;
+    qDebug() << "Preview dragging disabled.";
+}
+
 
 } // namespace cad_ui
 
